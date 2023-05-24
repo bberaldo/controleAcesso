@@ -88,14 +88,14 @@ public class APS {
 		Colaborador colaborador = new Colaborador();
 		Scanner sc = new Scanner(System.in);
 		String menu = "-------------- Menu ----------------\n1- Cadastrar coladorador\n2- Deletar colaborador";
-		SerialPort minhaPorta = SerialPort.getCommPort("COM9");
+		/*SerialPort minhaPorta = SerialPort.getCommPort("COM9");
 		minhaPorta.setComPortParameters(9600, 8, 1, 0);
 		minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_WRITE_BLOCKING, 0, 0);
 		
 		var hasOpen = minhaPorta.openPort();
 		if (!hasOpen) {
 			throw new IllegalStateException("Failed to open port");
-		}
+		}*/
 		
 		/*
 		int delay = 1000;   // tempo de espera antes da 1ª execução da tarefa.
@@ -130,7 +130,8 @@ public class APS {
 		}, delay, interval);*/
 		
 		ControlaSensores sensores = new ControlaSensores();
-		sensores.getTemperatura();
+		sensores.getCodeID();
+		
 		
 		
 		
