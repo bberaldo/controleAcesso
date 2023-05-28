@@ -48,7 +48,7 @@ void loop() {
       }
 
       if(auxiliar == 4){
-        Serial.println("Acesso Permitido!");
+        Serial.println("Acesso Permitido");
       }else{
         Serial.println("Acesso Negado");
       }
@@ -81,6 +81,8 @@ void loop() {
       for(int i=0; i<4; i++ ){
         Serial.print(mfrc522.uid.uidByte[i]);
       }
+    }else{
+      
     }
   }
 }

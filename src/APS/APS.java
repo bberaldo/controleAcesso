@@ -9,27 +9,7 @@ import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import com.fazecast.jSerialComm.*;
-
 public class APS {
-	public static void controlaLED(boolean status) throws IOException {
-		SerialPort minhaPorta = SerialPort.getCommPort("COM9");
-		minhaPorta.setComPortParameters(9600, 8, 1, 0);
-		minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_WRITE_BLOCKING, 0, 0);
-		/*var hasOpen = minhaPorta.openPort();
-		if (!hasOpen) {
-			throw new IllegalStateException("Failed to open port");
-		}*/
-		if(status == true) {
-			System.out.println(status);
-			Integer comando = 2;
-			minhaPorta.getOutputStream().write(comando.byteValue());
-		}else {
-			Integer comando = 3;
-			minhaPorta.getOutputStream().write(comando.byteValue());
-		}
-	}
-	
 	public static boolean validaCPF(String CPF) {
 		CPF = CPF.replace(",", "").replace("-", "").replace("/", "").replace(".", "");
 		
@@ -83,135 +63,105 @@ public class APS {
                 return(false);
             }	
         }
-	
+
 	public static void main(String[] args) throws IOException, InterruptedException {
 		Colaborador colaborador = new Colaborador();
 		Scanner sc = new Scanner(System.in);
-		String menu = "-------------- Menu ----------------\n1- Cadastrar coladorador\n2- Deletar colaborador";
-		/*SerialPort minhaPorta = SerialPort.getCommPort("COM9");
-		minhaPorta.setComPortParameters(9600, 8, 1, 0);
-		minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_WRITE_BLOCKING, 0, 0);
-		
-		var hasOpen = minhaPorta.openPort();
-		if (!hasOpen) {
-			throw new IllegalStateException("Failed to open port");
-		}*/
-		
-		/*
-		int delay = 1000;   // tempo de espera antes da 1ª execução da tarefa.
-		int interval = 5000;  // intervalo no qual a tarefa será executada.
-		Timer timer = new Timer();
-		timer.scheduleAtFixedRate(new TimerTask() {
-		  public void run() {
-			Integer comando = 1;
-			try {
-				minhaPorta.getOutputStream().write(comando.byteValue());
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			
-			minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 3000, 0);
-			
-			BufferedReader in = new BufferedReader(new InputStreamReader(minhaPorta.getInputStream()));
-	        try {
-	        	String acesso = in.readLine();
-	        	System.out.println(acesso);
-	        	if(acesso.equals("Acesso Permitido!")) {
-	        		timer.cancel();
-	        		System.out.println("Você está dentro do sistema");
-	        		comando = 3;
-	        		minhaPorta.getOutputStream().write(comando.byteValue());       		
-	        	}
-	        }catch(IOException e) {
-	        	System.out.println("Aproxime a tag no sensor...");
-	        }
-
-		  }
-		}, delay, interval);*/
-		
-		ControlaSensores sensores = new ControlaSensores();
-		sensores.getCodeID();
-		
-		
-		
-		
-		/*while(true) {
+		String menu = "-------------- Menu ----------------\n1- Cadastrar coladorador\n2- Deletar colaborador\n3- Entrar";
+				
+		while(true) {
 			System.out.println("\n");
 			System.out.println(menu);
 			System.out.println("Escolha uma opção: ");
 			int opcao = sc.nextInt();
-			switch(opcao) {
-				case 1:
-					while(true) {
-						System.out.println("Digite o nome: ");
-						String nome = sc.next();
-						System.out.println("Digite o CPF:");
-						String CPF = sc.next();
+			if(opcao == 1) {
+				System.out.println("Digite o nome: ");
+				String nome = sc.next();
+				while(true) {
+					System.out.println("Digite o CPF:");
+					String CPF = sc.next();
+					
+					if(validaCPF(CPF)) {					
+						colaborador.createColaborador(nome, "123", CPF);
+						System.out.println("Colaborador adicionado com sucesso!");
+						break;
+					}else {
+						System.out.println("CPF inválido. Tente novamente.");
+					}
+				}
+			}else if(opcao == 2) {
+				System.out.println("Digite o cpf do colaborador que deseja deletar");
+				String cpf = sc.next();
+				if(validaCPF(cpf)) {
+					String cpfColaborador = colaborador.getCPF();
+					
+					if(cpfColaborador != null && cpfColaborador.equals(cpf)) {
+						String nomeColaborador = colaborador.getNome();
 						
-						if(validaCPF(CPF)) {					
-							colaborador.createColaborador(nome, "123", CPF);
-							System.out.println("Colaborador adicionado com sucesso!");
+						System.out.println("Deseja deletar o(a) colaborador(a) " + nomeColaborador + "? (s/n)");
+						String confirmacaoDelete = sc.next();
+						if(!confirmacaoDelete.equalsIgnoreCase("s")) {
+							System.out.println("Nenhum colaborador foi deletado do sistema");
+							break;
+						}
+						
+						colaborador.deletaColaborador();
+						
+						System.out.println("O colaborador " + nomeColaborador + ", portador do CPF " + cpfColaborador + " foi deletado do sistema.");
+					}else {
+						System.out.println("Colaborador não encontrado na base de dados");
+					}
+				}
+			}else if(opcao == 3) {
+				System.out.println("Aproxime a tag do sensor...");
+				ControlaSensores arduinoSerial = new ControlaSensores();
+				
+				boolean acesso = true;
+				
+				while(acesso) {
+					Thread.sleep(5000);
+					boolean teste = arduinoSerial.getID();
+					if(teste == true) {
+						System.out.println("Acesso permitido!");
+						break;
+					}
+					
+				}
+								
+				System.out.println("Por favor, entre com o valor padrão do Ar Condicionado:");
+				float valorArCondicionado = sc.nextFloat();
+				boolean respostaTemp = true;
+				// aguardar a resposta do arduino, primeiro valor vem nulo
+				while(respostaTemp) {
+					String tempSensor = arduinoSerial.getTemperatura();
+					String umidadeSensor = arduinoSerial.getUmidade();
+					Thread.sleep(10000);
+					
+					if(tempSensor != null) {
+						float umidadeSensorFloat = Float.parseFloat(umidadeSensor);
+						float tempSensorFloat = Float.parseFloat(tempSensor);
+						
+						System.out.println(umidadeSensorFloat);
+						System.out.println(umidadeSensorFloat);
+						
+						if(tempSensorFloat >= valorArCondicionado) {
+							System.out.println("\nTemperatura: " + tempSensorFloat + "º\nUmidade: " + umidadeSensorFloat +  "\nA temperatura está " + (tempSensorFloat - valorArCondicionado) + "º acima da ideal para a sala, diminuindo para " + valorArCondicionado + "º");
 							break;
 						}else {
-							System.out.println("CPF inválido. Tente novamente.");
+							System.out.println("\nTemperatura: " + tempSensorFloat + "º\nUmidade: " + umidadeSensorFloat + "\nA temperatura está " + (valorArCondicionado - tempSensorFloat) + "º abaixo da ideal para a sala, aumentando para " + valorArCondicionado + "º");
+							break;
 						}
+					}else {
+						System.out.println("Lendo sensores de temperatura e umidade...");
 					}
-					break;
-				case 2:
-					System.out.println("Digite o cpf do colaborador que deseja deletar");
-					String cpf = sc.next();
-					if(validaCPF(cpf)) {
-						String[] colaboradores = colaborador.getColaborador();
-						
-						System.out.println(colaboradores);
-					}
+				}
+				
+				acesso = false;
+				
+				
+			} else {
+				System.out.println("Opção não encontrada");
 			}
-		}*/
-		
-		/*
-		long timeStart = System.currentTimeMillis();
-		
-		SerialPort minhaPorta = SerialPort.getCommPort("COM9");
-		minhaPorta.setComPortParameters(9600, 8, 1, 0);
-		minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_WRITE_BLOCKING, 0, 0);
-						
-		var hasOpen = minhaPorta.openPort();
-		if (!hasOpen) {
-			throw new IllegalStateException("Failed to open port");
 		}
-		
-		Scanner input = new Scanner(System.in);
-        while(true) {
-            System.out.print("\nEnter number of LED blinks (0 to exit): ");
-            Integer blinks = input.nextInt();
-            if(blinks == 0) break;
-            Thread.sleep(3000);
-            minhaPorta.getOutputStream().write(blinks.byteValue());
-            
-			minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 3000, 0);
-	
-	        
-	        BufferedReader in = new BufferedReader(new InputStreamReader(minhaPorta.getInputStream()));
-	        try {
-	        	String umidadade = in.readLine();
-	        	System.out.println(umidadade);
-	        }catch(IOException e) {
-	        	e.printStackTrace();
-	        }
-        }
-        input.close();
-		
-		if(minhaPorta.closePort()) {
-			System.out.println("Port is closed");
-		}else {
-			System.out.println("Port is not closed");
-		}
-		
-		
-		
-		minhaPorta.closePort();*/
-		
-		
-		
 	}
 }

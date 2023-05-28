@@ -14,6 +14,7 @@ import com.fazecast.jSerialComm.*;
 public class ControlaSensores {
 	private String temperatura;
 	private String umidade;
+	private boolean acessoLocal = false;
 	SerialPort minhaPorta;
 	
 	public ControlaSensores() {	
@@ -21,7 +22,7 @@ public class ControlaSensores {
 		minhaPorta.setComPortParameters(9600, 8, 1, 0);
 	}
 	
-	public void getTemperatura () {
+	public String getTemperatura () {
 		minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_WRITE_BLOCKING, 0, 0);
 		
 		boolean hasOpen = minhaPorta.openPort();
@@ -44,20 +45,20 @@ public class ControlaSensores {
 			minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 3000, 0);
 			
 			BufferedReader in = new BufferedReader(new InputStreamReader(minhaPorta.getInputStream()));
-	        
-        	try {
+			
+			try {
 				temperatura = in.readLine();
-				System.out.println(temperatura);
 			} catch (IOException e) {
-				
+				// enquanto não recebe nada do arduino
 			}
-	       
-
 		  }
 		}, delay, interval);
+		
+		return temperatura;
 	}
 	
-	public void getUmidade () {
+
+	public String getUmidade () {
 		minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_WRITE_BLOCKING, 0, 0);
 		
 		boolean hasOpen = minhaPorta.openPort();
@@ -82,24 +83,25 @@ public class ControlaSensores {
 			
 			BufferedReader in = new BufferedReader(new InputStreamReader(minhaPorta.getInputStream()));
 	        
-	        	try {
-					temperatura = in.readLine();
-					
-					System.out.println(temperatura);
-				} catch (IOException e) {
-					
-				}
+        	try {
+				umidade = in.readLine();
+			} catch (IOException e) {
+				//enquanto não recebe nada do arduino...
+			}
 	       
 
 		  }
 		}, delay, interval);
-		
-		System.out.println(temperatura);
+				
+		return umidade;
 		
 	}
 	
 	
-	public void getID () {
+	public boolean getID () {
+		int delay = 0;   // tempo de espera antes da 1ª execução da tarefa.
+		int interval = 1000;  // intervalo no qual a tarefa será executada.
+		Timer timer = new Timer();
 		minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_WRITE_BLOCKING, 0, 0);
 		
 		boolean hasOpen = minhaPorta.openPort();
@@ -107,11 +109,8 @@ public class ControlaSensores {
 			throw new IllegalStateException("Failed to open port");
 		}
 		
-		int delay = 0;   // tempo de espera antes da 1ª execução da tarefa.
-		int interval = 1000;  // intervalo no qual a tarefa será executada.
-		Timer timer = new Timer();
 		timer.scheduleAtFixedRate(new TimerTask() {
-		  public void run() {
+		  public void run () {
 			Integer comando = 1;
 			try {
 				minhaPorta.getOutputStream().write(comando.byteValue());
@@ -121,21 +120,26 @@ public class ControlaSensores {
 			
 			minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 3000, 0);
 			
-			BufferedReader in = new BufferedReader(new InputStreamReader(minhaPorta.getInputStream()));
-	        try {
-	        	String acesso = in.readLine();
-	        	System.out.println(acesso);
-	        	if(acesso.equals("Acesso Permitido!")) {
-	        		timer.cancel();
-	        		System.out.println("Você está dentro do sistema");
-	        		setLED(true);
+			while(acessoLocal == false) {
+				BufferedReader in = new BufferedReader(new InputStreamReader(minhaPorta.getInputStream()));
+	        	try {
+	        		String acesso = in.readLine();
+	        		if(acesso.equals("Acesso Permitido")) {
+	        			acessoLocal = true;
+	        			setLED(true);
+	        		}
+	        	}catch(IOException e) {
+	        		acessoLocal = false;
 	        	}
-	        }catch(IOException e) {
-	        	System.out.println("Aproxime a tag no sensor...");
+	        	
+	        	break;
 	        }
-
+			timer.cancel();
 		  }
+		  
 		}, delay, interval);
+		
+		return acessoLocal;
 	}
 	
 	
@@ -149,7 +153,6 @@ public class ControlaSensores {
 		}
 		
 		try {
-			System.out.println("Entrou aqui " + comando);
 			minhaPorta.getOutputStream().write(comando.byteValue());
 		}catch (IOException e) {
 			e.printStackTrace();
