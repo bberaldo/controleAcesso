@@ -14,7 +14,7 @@ import com.fazecast.jSerialComm.*;
 public class ControlaSensores {
 	private String temperatura;
 	private String umidade;
-	private boolean acessoLocal = false;
+	private String acessoLocal = "";
 	SerialPort minhaPorta;
 	
 	public ControlaSensores() {	
@@ -98,7 +98,7 @@ public class ControlaSensores {
 	}
 	
 	
-	public boolean getID () {
+	public String getID () {
 		int delay = 0;   // tempo de espera antes da 1ª execução da tarefa.
 		int interval = 1000;  // intervalo no qual a tarefa será executada.
 		Timer timer = new Timer();
@@ -120,16 +120,18 @@ public class ControlaSensores {
 			
 			minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 3000, 0);
 			
-			while(acessoLocal == false) {
+			while(acessoLocal.equals("") || acessoLocal.equals("negado")) {
 				BufferedReader in = new BufferedReader(new InputStreamReader(minhaPorta.getInputStream()));
 	        	try {
 	        		String acesso = in.readLine();
 	        		if(acesso.equals("Acesso Permitido")) {
-	        			acessoLocal = true;
+	        			acessoLocal = "permitido";
 	        			setLED(true);
+	        		} else if(acesso.equals("Acesso Negado")) {
+	        			acessoLocal = "negado";
 	        		}
 	        	}catch(IOException e) {
-	        		acessoLocal = false;
+	        		acessoLocal = "";
 	        	}
 	        	
 	        	break;

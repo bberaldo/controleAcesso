@@ -64,9 +64,14 @@ public class APS {
             }	
         }
 
+	public static void mudaTemperatura() {
+		
+	}
+	
 	public static void main(String[] args) throws IOException, InterruptedException {
 		Colaborador colaborador = new Colaborador();
 		Scanner sc = new Scanner(System.in);
+		boolean acesso = false;
 		String menu = "-------------- Menu ----------------\n1- Cadastrar coladorador\n2- Deletar colaborador\n3- Entrar";
 				
 		while(true) {
@@ -74,6 +79,7 @@ public class APS {
 			System.out.println(menu);
 			System.out.println("Escolha uma opção: ");
 			int opcao = sc.nextInt();
+			
 			if(opcao == 1) {
 				System.out.println("Digite o nome: ");
 				String nome = sc.next();
@@ -112,56 +118,76 @@ public class APS {
 						System.out.println("Colaborador não encontrado na base de dados");
 					}
 				}
+				
 			}else if(opcao == 3) {
 				System.out.println("Aproxime a tag do sensor...");
 				ControlaSensores arduinoSerial = new ControlaSensores();
 				
-				boolean acesso = true;
-				
-				while(acesso) {
+				int count = 0;
+				while(true) {
 					Thread.sleep(5000);
-					boolean teste = arduinoSerial.getID();
-					if(teste == true) {
+					String respostaSensor = arduinoSerial.getID();
+					if(respostaSensor.equals("permitido")) {
 						System.out.println("Acesso permitido!");
+						acesso = true;
 						break;
-					}
-					
-				}
-								
-				System.out.println("Por favor, entre com o valor padrão do Ar Condicionado:");
-				float valorArCondicionado = sc.nextFloat();
-				boolean respostaTemp = true;
-				// aguardar a resposta do arduino, primeiro valor vem nulo
-				while(respostaTemp) {
-					String tempSensor = arduinoSerial.getTemperatura();
-					String umidadeSensor = arduinoSerial.getUmidade();
-					Thread.sleep(10000);
-					
-					if(tempSensor != null) {
-						float umidadeSensorFloat = Float.parseFloat(umidadeSensor);
-						float tempSensorFloat = Float.parseFloat(tempSensor);
-						
-						System.out.println(umidadeSensorFloat);
-						System.out.println(umidadeSensorFloat);
-						
-						if(tempSensorFloat >= valorArCondicionado) {
-							System.out.println("\nTemperatura: " + tempSensorFloat + "º\nUmidade: " + umidadeSensorFloat +  "\nA temperatura está " + (tempSensorFloat - valorArCondicionado) + "º acima da ideal para a sala, diminuindo para " + valorArCondicionado + "º");
-							break;
-						}else {
-							System.out.println("\nTemperatura: " + tempSensorFloat + "º\nUmidade: " + umidadeSensorFloat + "\nA temperatura está " + (valorArCondicionado - tempSensorFloat) + "º abaixo da ideal para a sala, aumentando para " + valorArCondicionado + "º");
+					} else if(respostaSensor.equals("negado")) {
+						System.out.println("Acesso não permitido. Tente novamente");
+						acesso = false;
+						count++;
+						if(count >= 3) {
+							System.out.println("Não foi possível encontrar a sua chave de acesso, procure o seu gerente.");
 							break;
 						}
-					}else {
-						System.out.println("Lendo sensores de temperatura e umidade...");
 					}
+				
 				}
 				
-				acesso = false;
+				if(acesso) {
+					System.out.println("Por favor, entre com o valor padrão do Ar Condicionado:");
+					float valorArCondicionado = sc.nextFloat();
+					boolean respostaTemp = true;
+					// aguardar a resposta do arduino, primeiro valor vem nulo
+					while(respostaTemp) {
+						String tempSensor = arduinoSerial.getTemperatura();
+						String umidadeSensor = arduinoSerial.getUmidade();
+						Thread.sleep(10000);
+						
+						
+						if(tempSensor != null ) {
+							float tempSensorFloat = Float.parseFloat(tempSensor);
+							
+							// arduino começou a retornar valores muito altos para a temperatura
+							if(tempSensorFloat < 40) {
+								System.out.println("senor flora"+tempSensorFloat);
+								float umidadeSensorFloat = Float.parseFloat(umidadeSensor);
+
+								if(tempSensorFloat >= valorArCondicionado) {
+								//if(16.00 >= valorArCondicionado) { // PARA TESTES
+									System.out.println("\nTemperatura: " + tempSensorFloat + "º\nUmidade: " + umidadeSensorFloat +  "\nA temperatura está " + (tempSensorFloat - valorArCondicionado) + "º acima da ideal para a sala, diminuindo para " + valorArCondicionado + "º");
+									break;
+								}else {
+									float diferenca = valorArCondicionado - tempSensorFloat;
+									//float diferenca = (float) (valorArCondicionado - 16.00) ; // PARA TESTES
+									System.out.println("\nTemperatura: " + tempSensorFloat + "º\nUmidade: " + umidadeSensorFloat + "\nA temperatura está " + diferenca + "º abaixo da ideal para a sala, aumentando para " + valorArCondicionado + "º");
+									break;
+								}
+															}
+						}else {
+							System.out.println("Lendo sensores de temperatura e umidade...");
+						}
+					}
+					
+				} 
+				
+				break;
 				
 				
 			} else {
 				System.out.println("Opção não encontrada");
 			}
+			
+			sc.close();
 		}
 	}
 }
