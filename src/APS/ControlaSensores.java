@@ -15,6 +15,7 @@ public class ControlaSensores {
 	private String temperatura;
 	private String umidade;
 	private String acessoLocal = "";
+	private String uid = "";
 	SerialPort minhaPorta;
 	
 	public ControlaSensores() {	
@@ -99,10 +100,10 @@ public class ControlaSensores {
 	
 	
 	public String getID () {
+		minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_WRITE_BLOCKING, 0, 0);
 		int delay = 0;   // tempo de espera antes da 1ª execução da tarefa.
 		int interval = 1000;  // intervalo no qual a tarefa será executada.
 		Timer timer = new Timer();
-		minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_WRITE_BLOCKING, 0, 0);
 		
 		boolean hasOpen = minhaPorta.openPort();
 		if (!hasOpen) {
@@ -119,7 +120,7 @@ public class ControlaSensores {
 			}
 			
 			minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 3000, 0);
-			
+
 			while(acessoLocal.equals("") || acessoLocal.equals("negado")) {
 				BufferedReader in = new BufferedReader(new InputStreamReader(minhaPorta.getInputStream()));
 	        	try {
@@ -164,7 +165,10 @@ public class ControlaSensores {
 	}
 
 	
-	public void getCodeID() throws IOException {
+	public String getUID() throws IOException {
+		int delay = 0;   // tempo de espera antes da 1ª execução da tarefa.
+		int interval = 1000;  // intervalo no qual a tarefa será executada.
+		Timer timer = new Timer();
 		minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_WRITE_BLOCKING, 0, 0);
 		
 		boolean hasOpen = minhaPorta.openPort();
@@ -172,22 +176,33 @@ public class ControlaSensores {
 			throw new IllegalStateException("Failed to open port");
 		}
 		
-		Integer comando = 6;
-		try {
-			minhaPorta.getOutputStream().write(comando.byteValue());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 3000, 0);
-		
-		BufferedReader in = new BufferedReader(new InputStreamReader(minhaPorta.getInputStream()));
-    	String acesso = in.readLine();
-    	System.out.println(acesso);
-    	if(acesso.equals("Acesso Permitido!")) {
-    		System.out.println("Você está dentro do sistema");
-    		setLED(true);
-    	}
-		
+		timer.scheduleAtFixedRate(new TimerTask() {
+		  public void run () {
+			Integer comando = 7;
+			try {
+				minhaPorta.getOutputStream().write(comando.byteValue());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+			minhaPorta.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 3000, 0);
+			
+			while(uid == "") {
+				BufferedReader in = new BufferedReader(new InputStreamReader(minhaPorta.getInputStream()));
+				try {
+					uid = in.readLine();
+					timer.cancel();
+				}catch(IOException e) {
+					//Enquanto não vem resposta do arduino
+				}
+			}
+        	
+		  }
+		  
+		}, delay, interval);
+			
+    	return uid;
+
 	}
+	
 }

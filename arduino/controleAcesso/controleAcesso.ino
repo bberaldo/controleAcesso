@@ -81,8 +81,29 @@ void loop() {
       for(int i=0; i<4; i++ ){
         Serial.print(mfrc522.uid.uidByte[i]);
       }
-    }else{
+    } else if (inByte == 7) {
+      
+      if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) //VERIFICA SE O CARTÃO PRESENTE NO LEITOR É DIFERENTE DO ÚLTIMO CARTÃO LIDO. CASO NÃO SEJA, FAZ
+        return; //RETORNA PARA LER NOVAMENTE
+ 
+      /***INICIO BLOCO DE CÓDIGO RESPONSÁVEL POR GERAR A TAG mfrc522 LIDA***/
+      String strID = "";
+      for (byte i = 0; i < 4; i++) {
+        strID +=
+        (mfrc522.uid.uidByte[i] < 0x10 ? "0" : "") +
+        String(mfrc522.uid.uidByte[i], HEX) +
+        (i!=3 ? " " : "");
+      }
+      strID.toUpperCase();
+      /***FIM DO BLOCO DE CÓDIGO RESPONSÁVEL POR GERAR A TAG mfrc522 LIDA***/
+    
+      Serial.println(strID); //IMPRIME NA SERIAL O UID DA TAG mfrc522
+    
+      mfrc522.PICC_HaltA(); //PARADA DA LEITURA DO CARTÃO
+      mfrc522.PCD_StopCrypto1(); //PARADA DA CRIPTOGRAFIA NO PCD
+
+    } else{
       
     }
-  }
+  } 
 }

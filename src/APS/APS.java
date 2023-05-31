@@ -64,15 +64,13 @@ public class APS {
             }	
         }
 
-	public static void mudaTemperatura() {
-		
-	}
 	
 	public static void main(String[] args) throws IOException, InterruptedException {
 		Colaborador colaborador = new Colaborador();
+		ControlaSensores arduinoSerial = new ControlaSensores();
 		Scanner sc = new Scanner(System.in);
 		boolean acesso = false;
-		String menu = "-------------- Menu ----------------\n1- Cadastrar coladorador\n2- Deletar colaborador\n3- Entrar";
+		String menu = "-------------- Menu ----------------\n1- Cadastrar coladorador\n2- Deletar colaborador\n3- Entrar\n4- Mostrar colaborador cadastrado";
 				
 		while(true) {
 			System.out.println("\n");
@@ -83,50 +81,67 @@ public class APS {
 			if(opcao == 1) {
 				System.out.println("Digite o nome: ");
 				String nome = sc.next();
+				String CPF = "";
 				while(true) {
 					System.out.println("Digite o CPF:");
-					String CPF = sc.next();
+					CPF = sc.next();
 					
 					if(validaCPF(CPF)) {					
-						colaborador.createColaborador(nome, "123", CPF);
-						System.out.println("Colaborador adicionado com sucesso!");
 						break;
 					}else {
 						System.out.println("CPF inválido. Tente novamente.");
 					}
 				}
+				
+				System.out.println("Aproxime a chave para cadastro");
+				String cadastroUID = "";
+				
+				while(true) {
+					cadastroUID = arduinoSerial.getUID();
+					if(cadastroUID != "") break;
+
+					Thread.sleep(5000);
+				}
+				
+				colaborador.createColaborador(nome, cadastroUID, CPF);
+				System.out.println("\nColaborador adicionado com sucesso!");
+				
 			}else if(opcao == 2) {
-				System.out.println("Digite o cpf do colaborador que deseja deletar");
-				String cpf = sc.next();
-				if(validaCPF(cpf)) {
-					String cpfColaborador = colaborador.getCPF();
-					
-					if(cpfColaborador != null && cpfColaborador.equals(cpf)) {
-						String nomeColaborador = colaborador.getNome();
+				while(true) {
+					System.out.println("Digite o cpf do colaborador que deseja deletar");
+					String cpf = sc.next();
+					if(validaCPF(cpf)) {
+						String cpfColaborador = colaborador.getCPF();
 						
-						System.out.println("Deseja deletar o(a) colaborador(a) " + nomeColaborador + "? (s/n)");
-						String confirmacaoDelete = sc.next();
-						if(!confirmacaoDelete.equalsIgnoreCase("s")) {
-							System.out.println("Nenhum colaborador foi deletado do sistema");
+						if(cpfColaborador != null && cpfColaborador.equals(cpf)) {
+							String nomeColaborador = colaborador.getNome();
+							
+							System.out.println("Deseja deletar o(a) colaborador(a) " + nomeColaborador + "? (s/n)");
+							String confirmacaoDelete = sc.next();
+							if(!confirmacaoDelete.equalsIgnoreCase("s")) {
+								System.out.println("Nenhum colaborador foi deletado do sistema");
+								break;
+							}
+							
+							colaborador.deletaColaborador();
+							
+							System.out.println("O colaborador " + nomeColaborador + ", portador do CPF " + cpfColaborador + " foi deletado do sistema.");
 							break;
+						}else {
+							System.out.println("Colaborador não encontrado na base de dados");
 						}
-						
-						colaborador.deletaColaborador();
-						
-						System.out.println("O colaborador " + nomeColaborador + ", portador do CPF " + cpfColaborador + " foi deletado do sistema.");
-					}else {
-						System.out.println("Colaborador não encontrado na base de dados");
+					} else {
+						System.out.println("CPF inválido.");
 					}
 				}
 				
 			}else if(opcao == 3) {
 				System.out.println("Aproxime a tag do sensor...");
-				ControlaSensores arduinoSerial = new ControlaSensores();
 				
 				int count = 0;
 				while(true) {
-					Thread.sleep(5000);
 					String respostaSensor = arduinoSerial.getID();
+					Thread.sleep(5000);
 					if(respostaSensor.equals("permitido")) {
 						System.out.println("Acesso permitido!");
 						acesso = true;
@@ -144,8 +159,11 @@ public class APS {
 				}
 				
 				if(acesso) {
-					System.out.println("Por favor, entre com o valor padrão do Ar Condicionado:");
+					System.out.println("\nPor favor, entre com o valor padrão do Ar Condicionado:");
 					float valorArCondicionado = sc.nextFloat();
+					
+					System.out.println("\nPor favor, entre com o valor padrão de umidade da sala:");
+					float valorUmidade = sc.nextFloat();
 					boolean respostaTemp = true;
 					// aguardar a resposta do arduino, primeiro valor vem nulo
 					while(respostaTemp) {
@@ -153,26 +171,34 @@ public class APS {
 						String umidadeSensor = arduinoSerial.getUmidade();
 						Thread.sleep(10000);
 						
-						
 						if(tempSensor != null ) {
 							float tempSensorFloat = Float.parseFloat(tempSensor);
-							
+							float diferenca;
 							// arduino começou a retornar valores muito altos para a temperatura
 							if(tempSensorFloat < 40) {
-								System.out.println("senor flora"+tempSensorFloat);
 								float umidadeSensorFloat = Float.parseFloat(umidadeSensor);
 
 								if(tempSensorFloat >= valorArCondicionado) {
 								//if(16.00 >= valorArCondicionado) { // PARA TESTES
-									System.out.println("\nTemperatura: " + tempSensorFloat + "º\nUmidade: " + umidadeSensorFloat +  "\nA temperatura está " + (tempSensorFloat - valorArCondicionado) + "º acima da ideal para a sala, diminuindo para " + valorArCondicionado + "º");
-									break;
+									System.out.println("\nTemperatura: " + tempSensorFloat + "º\nUmidade: " + umidadeSensorFloat +  "%\nA temperatura está " + (tempSensorFloat - valorArCondicionado) + "º acima da ideal para a sala, diminuindo para " + valorArCondicionado + "º");
+									//break;
 								}else {
-									float diferenca = valorArCondicionado - tempSensorFloat;
+									diferenca = valorArCondicionado - tempSensorFloat;
 									//float diferenca = (float) (valorArCondicionado - 16.00) ; // PARA TESTES
-									System.out.println("\nTemperatura: " + tempSensorFloat + "º\nUmidade: " + umidadeSensorFloat + "\nA temperatura está " + diferenca + "º abaixo da ideal para a sala, aumentando para " + valorArCondicionado + "º");
-									break;
+									System.out.println("\nTemperatura: " + tempSensorFloat + "º\nUmidade: " + umidadeSensorFloat + "%\nA temperatura está " + diferenca + "º abaixo da ideal para a sala, aumentando para " + valorArCondicionado + "º");
+									//break;
 								}
-															}
+								
+								if(umidadeSensorFloat >= valorUmidade) {
+									System.out.println("\nA umidade está " + (umidadeSensorFloat - valorUmidade) + "% acima da ideal para a sala, aumentando para " + valorUmidade +"%");
+								} else {
+									diferenca = valorUmidade - umidadeSensorFloat;
+									System.out.println("\nA umidade está " + (diferenca) + "% abaixo da ideal para a sala, aumentando para " + valorUmidade +"%");
+								}
+								
+								break;
+							}
+							
 						}else {
 							System.out.println("Lendo sensores de temperatura e umidade...");
 						}
@@ -182,12 +208,12 @@ public class APS {
 				
 				break;
 				
-				
-			} else {
+			} else if (opcao == 4) {
+				colaborador.showColaborador();
+			}else {
 				System.out.println("Opção não encontrada");
 			}
 			
-			sc.close();
 		}
 	}
 }

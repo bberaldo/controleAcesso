@@ -11,7 +11,6 @@ public class Colaborador {
 		setCpf(cpf);
 	}
 	
-
 	private void setNome(String nome) {
 		this.nome = nome;
 	}
@@ -36,6 +35,25 @@ public class Colaborador {
 	
 	public String getCPF() {
 		return this.cpf;
+	}
+	
+	public void showColaborador() {
+		if(this.cpf == "" || this.cpf == null) {
+			System.out.println("Nenhum colaborador cadastrado.");
+		} else {			
+			System.out.println("Nome: "+nome);
+			System.out.println("CPF: "+cpf);
+			System.out.println("Secret Key: "+secretKey);
+		}
+	}
+	
+	public boolean isSecretKey(String sensorKey) {
+		System.out.println("*"+sensorKey+" "+secretKey);
+		if(sensorKey == secretKey) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 	
 }
